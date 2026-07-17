@@ -28,7 +28,8 @@ class EmbeddingProvider(str, Enum):
 
 class LLMProvider(str, Enum):
     OPENAI = "openai"
-    GEMINI = "gemini"       # future
+    GEMINI = "gemini"
+    NEMOTRON = "nemotron"
 
 
 # ---------------------------------------------------------------------------
@@ -67,11 +68,18 @@ class Settings(BaseSettings):
     openai_temperature: float = Field(default=0.2)
     openai_request_timeout: int = Field(default=60)
 
-    # ── Gemini (Future) ───────────────────────────────────────────────────────
+    # ── Gemini ────────────────────────────────────────────────────────────────
     gemini_api_key: str = Field(default="")
     gemini_model: str = Field(default="gemini-1.5-pro")
     gemini_embedding_model: str = Field(default="models/text-embedding-004")
     gemini_embedding_dimensions: int = Field(default=768)
+
+    # ── NVIDIA Nemotron (NIM API) ──────────────────────────────────────────────
+    nvidia_api_key: str = Field(default="")
+    nemotron_model: str = Field(default="nvidia/nemotron-ultra-253b-v1")
+    nemotron_max_tokens: int = Field(default=4096)
+    nemotron_temperature: float = Field(default=0.2)
+    nemotron_request_timeout: int = Field(default=120)
 
     # ── Qdrant ────────────────────────────────────────────────────────────────
     qdrant_host: str = Field(default="localhost")

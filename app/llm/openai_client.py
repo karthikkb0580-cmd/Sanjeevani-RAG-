@@ -236,6 +236,85 @@ class GeminiLLMClient(BaseLLMClient):
 
 
 # ---------------------------------------------------------------------------
+# Nemotron client (NVIDIA NIM – OpenAI-compatible)
+# ---------------------------------------------------------------------------
+
+class NemotronLLMClient(BaseLLMClient):
+    """
+    NVIDIA Nemotron-Ultra LLM client via the NVIDIA NIM API.
+
+    NVIDIA's NIM API is fully OpenAI-compatible — same SDK, different
+    base_url (https://integrate.api.nvidia.com/v1) and API key.
+    Model: nvidia/nemotron-ultra-253b-v1
+    """
+
+    def __init__(self) -> None:
+        from openai import AsyncOpenAI
+
+        settings = get_settings()
+        if not settings.nvidia_api_key:
+            raise ValueError(
+                "NVIDIA_API_KEY is not configured. "
+                "Get a free key at https://build.nvidia.com/nvidia/nemotron-ultra-253b-v1"
+            )
+
+        self._client = AsyncOpenAI(
+            api_key=settings.nvidia_api_key,
+            base_url="https://integrate.api.nvidia.com/v1",
+            timeout=settings.nemotron_request_timeout,
+        )
+        self._model = settings.nemotron_model
+        self._max_tokens = settings.nemotron_max_tokens
+        self._temperature = settings.nemotron_temperature
+
+        logger.info("Nemotron LLM client initialised with model '%s'", self._model)
+
+    @property
+    def model_name(self) -> str:
+        return self._model
+
+    async def complete(self, prompt: BuiltPrompt) -> LLMResponse:
+        """
+        Send the prompt to NVIDIA NIM and return a structured LLMResponse.
+        Retries on rate-limit and transient API errors.
+        """
+        from openai import RateLimitError, APIStatusError, APIConnectionError
+
+        messages = [
+            {"role": "system", "content": prompt.system_message},
+            {"role": "user", "content": prompt.user_message},
+        ]
+
+        async for attempt in AsyncRetrying(
+            retry=retry_if_exception_type(
+                (RateLimitError, APIStatusError, APIConnectionError)
+            ),
+            wait=wait_exponential(multiplier=1, min=2, max=60),
+            stop=stop_after_attempt(5),
+            reraise=True,
+        ):
+            with attempt:
+                response = await self._client.chat.completions.create(
+                    model=self._model,
+                    messages=messages,
+                    max_tokens=self._max_tokens,
+                    temperature=self._temperature,
+                )
+
+        choice = response.choices[0]
+        usage = response.usage
+
+        return LLMResponse(
+            content=choice.message.content or "",
+            model=response.model,
+            prompt_tokens=usage.prompt_tokens if usage else 0,
+            completion_tokens=usage.completion_tokens if usage else 0,
+            total_tokens=usage.total_tokens if usage else 0,
+            finish_reason=choice.finish_reason or "unknown",
+        )
+
+
+# ---------------------------------------------------------------------------
 # Factory
 # ---------------------------------------------------------------------------
 
@@ -248,6 +327,8 @@ def create_llm_client() -> BaseLLMClient:
         return OpenAILLMClient()
     elif provider == LLMProvider.GEMINI:
         return GeminiLLMClient()
+    elif provider == LLMProvider.NEMOTRON:
+        return NemotronLLMClient()
     else:
         raise ValueError(f"Unknown LLM provider: {provider}")
 
