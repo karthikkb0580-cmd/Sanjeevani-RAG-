@@ -30,7 +30,7 @@ class TXTLoader:
     HEADING_PATTERNS = [
         re.compile(r"^#{1,6}\s+.+$"),                      # Markdown headings
         re.compile(r"^(?:Chapter|Section|Part)\s+\w+", re.IGNORECASE),
-        re.compile(r"^\d+(\.\d+)*\s+[A-Z]"),               # Numbered sections
+        re.compile(r"^\d+(\.\d+)*\.?\s+[A-Z]"),               # Numbered sections
         re.compile(r"^[A-Z][A-Z\s,\-:]{5,79}$"),           # ALL CAPS lines
     ]
     UNDERLINE_PATTERN = re.compile(r"^[=\-]{3,}$")
@@ -49,7 +49,7 @@ class TXTLoader:
         with self.file_path.open("r", encoding="utf-8", errors="replace") as fh:
             raw_content = fh.read()
 
-        lines = raw_content.splitlines()
+        lines = raw_content.replace("\r\n", "\n").split("\n")
         title = self._infer_title(lines)
 
         pages = self._split_into_pages(lines)
@@ -105,7 +105,7 @@ class TXTLoader:
 
         for idx, line in enumerate(lines):
             # Detect explicit page breaks
-            if line.strip() == "\x0c":
+            if "\x0c" in line:
                 flush_page()
                 continue
 

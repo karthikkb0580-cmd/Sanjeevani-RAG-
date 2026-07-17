@@ -225,7 +225,8 @@ class GeminiEmbeddingProvider(BaseEmbeddingProvider):
         requests_payload = [
             {
                 "model": self._model,
-                "content": {"parts": [{"text": t}]}
+                "content": {"parts": [{"text": t}]},
+                "outputDimensionality": self._dimensions
             }
             for t in texts
         ]

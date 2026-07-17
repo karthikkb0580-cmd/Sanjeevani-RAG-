@@ -8,7 +8,6 @@ Manages the AsyncQdrantClient lifecycle, collection creation, and health checks.
 from __future__ import annotations
 
 import logging
-from functools import lru_cache
 
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http import models as qdrant_models
