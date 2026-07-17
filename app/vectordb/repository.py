@@ -13,8 +13,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from qdrant_client import AsyncQdrantClient
-from qdrant_client.http import models as qdrant_models
+from qdrant_client import AsyncQdrantClient, models as qdrant_models
 
 from app.config.settings import get_settings
 from app.schemas.document import DocumentChunk
