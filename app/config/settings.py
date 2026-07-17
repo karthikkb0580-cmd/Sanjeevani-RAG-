@@ -68,18 +68,25 @@ class Settings(BaseSettings):
     openai_temperature: float = Field(default=0.2)
     openai_request_timeout: int = Field(default=60)
 
-    # ── Gemini ────────────────────────────────────────────────────────────────
+    # ── Gemini (Embeddings only) ───────────────────────────────────────────────
     gemini_api_key: str = Field(default="")
     gemini_model: str = Field(default="gemini-1.5-pro")
     gemini_embedding_model: str = Field(default="models/text-embedding-004")
     gemini_embedding_dimensions: int = Field(default=768)
 
-    # ── NVIDIA Nemotron (NIM API) ──────────────────────────────────────────────
+    # ── NVIDIA NIM API (Text LLM + Vision) ────────────────────────────────────
     nvidia_api_key: str = Field(default="")
+    # Text LLM (Nemotron)
     nemotron_model: str = Field(default="nvidia/nemotron-ultra-253b-v1")
     nemotron_max_tokens: int = Field(default=4096)
     nemotron_temperature: float = Field(default=0.2)
     nemotron_request_timeout: int = Field(default=120)
+    # Vision model — used by the multipart endpoint for image→molecule extraction
+    # Recommended: nvidia/llama-3.2-90b-vision-instruct (highest accuracy)
+    #              nvidia/llama-3.2-11b-vision-instruct  (faster / lower cost)
+    nvidia_vision_model: str = Field(default="nvidia/llama-3.2-90b-vision-instruct")
+    nvidia_vision_max_tokens: int = Field(default=1024)
+    nvidia_vision_temperature: float = Field(default=0.1)
 
     # ── Qdrant ────────────────────────────────────────────────────────────────
     qdrant_host: str = Field(default="localhost")
@@ -104,6 +111,16 @@ class Settings(BaseSettings):
     max_file_size_mb: int = Field(default=50)
     allowed_extensions: str = Field(default="pdf,txt,docx")
     upload_dir: str = Field(default="/tmp/rag_uploads")
+
+    # ── Vision / Image Upload ─────────────────────────────────────────────────
+    max_image_size_mb: int = Field(default=20)
+    allowed_image_mimes: str = Field(
+        default="image/jpeg,image/png,image/webp,image/gif,image/bmp,image/tiff"
+    )
+
+    @property
+    def allowed_image_mime_set(self) -> set[str]:
+        return {m.strip().lower() for m in self.allowed_image_mimes.split(",")}
 
     # ── Derived Properties ────────────────────────────────────────────────────
 

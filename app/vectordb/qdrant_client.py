@@ -47,7 +47,7 @@ class QdrantClientManager:
 
         try:
             self._client = AsyncQdrantClient(**kwargs)
-            await self._client.get_collections()  # verify connectivity
+            await self._client.get_collections()
             logger.info(
                 "Qdrant client connected to %s:%s",
                 settings.qdrant_host,
