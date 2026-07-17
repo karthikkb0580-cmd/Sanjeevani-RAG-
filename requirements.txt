@@ -26,6 +26,10 @@ python-docx==1.2.0
 # ── Text Processing ───────────────────────────────────────────────────────────
 langchain-text-splitters==1.1.2
 
+# ── Cheminformatics (optional – gracefully degraded if unavailable) ────────────
+# rdkit-pypi==2022.9.5          # Uncomment if RDKit not already installed via conda
+# Alternatively: conda install -c conda-forge rdkit
+
 # ── Async & HTTP ─────────────────────────────────────────────────────────────
 httpx==0.28.1
 anyio==4.14.2

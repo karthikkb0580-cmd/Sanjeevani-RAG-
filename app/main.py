@@ -18,7 +18,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import chat, documents, health, retrieval
+from app.api import chat, documents, health, retrieval, analysis
 from app.config.settings import get_settings
 from app.vectordb.qdrant_client import get_qdrant_manager
 
@@ -123,8 +123,9 @@ def create_application() -> FastAPI:
     app.include_router(documents.router)
     app.include_router(retrieval.router)
     app.include_router(chat.router)
+    app.include_router(analysis.router)   # Multi-agent analysis (v2)
 
-    logger.debug("Routers registered: health, documents, retrieval, chat")
+    logger.debug("Routers registered: health, documents, retrieval, chat, analysis")
     return app
 
 
