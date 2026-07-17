@@ -164,30 +164,90 @@ class OpenAIEmbeddingProvider(BaseEmbeddingProvider):
 
 class GeminiEmbeddingProvider(BaseEmbeddingProvider):
     """
-    Placeholder for Google Gemini embedding provider.
-
-    Will use the 'models/text-embedding-004' model when implemented.
+    Google Gemini embedding provider using text-embedding-004.
+    Calls the REST API directly using httpx to avoid local dependency issues on Windows/Python 3.14.
     """
 
+    BATCH_SIZE = 100
+
     def __init__(self) -> None:
-        raise NotImplementedError(
-            "GeminiEmbeddingProvider is not yet implemented. "
-            "Set EMBEDDING_PROVIDER=openai in your .env"
-        )
+        import httpx
+        from app.utils.tokenizer import truncate_to_tokens
+
+        settings = get_settings()
+        # Fall back to checking GEMINI_API_KEY in environment directly
+        import os
+        key = settings.gemini_api_key or os.environ.get("GEMINI_API_KEY", "")
+        if not key:
+            raise ValueError("GEMINI_API_KEY is not configured")
+        self._api_key = key
+
+        self._model = settings.gemini_embedding_model or "models/text-embedding-004"
+        # Ensure it has the "models/" prefix
+        if not self._model.startswith("models/"):
+            self._model = f"models/{self._model}"
+
+        self._dimensions = settings.gemini_embedding_dimensions or 768
+        self._client = httpx.AsyncClient(timeout=settings.openai_request_timeout)
+        self._truncate = truncate_to_tokens
+        logger.info("Gemini embedding provider initialised with model '%s'", self._model)
 
     @property
     def model_name(self) -> str:
-        return "models/text-embedding-004"
+        return self._model
 
     @property
     def dimensions(self) -> int:
-        return 768
+        return self._dimensions
 
     async def embed_texts(self, texts: list[str]) -> list[list[float]]:
-        raise NotImplementedError
+        if not texts:
+            return []
+
+        # Gemini supports up to 2048 texts per batch call, but we batch by 100 to be safe
+        all_embeddings: list[list[float]] = []
+
+        for i in range(0, len(texts), self.BATCH_SIZE):
+            batch = texts[i : i + self.BATCH_SIZE]
+            batch_embeddings = await self._embed_batch_with_retry(batch)
+            all_embeddings.extend(batch_embeddings)
+
+        return all_embeddings
 
     async def embed_query(self, text: str) -> list[float]:
-        raise NotImplementedError
+        results = await self.embed_texts([text])
+        return results[0]
+
+    async def _embed_batch_with_retry(self, texts: list[str]) -> list[list[float]]:
+        import httpx
+        url = f"https://generativelanguage.googleapis.com/v1beta/{self._model}:batchEmbedContents?key={self._api_key}"
+
+        requests_payload = [
+            {
+                "model": self._model,
+                "content": {"parts": [{"text": t}]}
+            }
+            for t in texts
+        ]
+        payload = {"requests": requests_payload}
+
+        async for attempt in AsyncRetrying(
+            retry=retry_if_exception_type((httpx.HTTPError, httpx.NetworkError)),
+            wait=wait_exponential(multiplier=1, min=1, max=60),
+            stop=stop_after_attempt(5),
+            reraise=True,
+        ):
+            with attempt:
+                response = await self._client.post(url, json=payload)
+                if response.status_code != 200:
+                    logger.error("Gemini embedding error: %s", response.text)
+                    response.raise_for_status()
+                
+                data = response.json()
+                embeddings_data = data.get("embeddings", [])
+                return [emb["values"] for emb in embeddings_data]
+
+        raise RuntimeError("Gemini embedding request failed after all retries")
 
 
 # ---------------------------------------------------------------------------

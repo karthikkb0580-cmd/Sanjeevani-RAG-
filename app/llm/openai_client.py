@@ -138,20 +138,101 @@ class OpenAILLMClient(BaseLLMClient):
 # ---------------------------------------------------------------------------
 
 class GeminiLLMClient(BaseLLMClient):
-    """Placeholder for Google Gemini LLM client."""
+    """
+    Google Gemini chat completion client using REST API.
+    Calls the API using httpx to prevent local compilation errors on Windows/Python 3.14.
+    """
 
     def __init__(self) -> None:
-        raise NotImplementedError(
-            "GeminiLLMClient is not yet implemented. "
-            "Set LLM_PROVIDER=openai in your .env"
-        )
+        import httpx
+        settings = get_settings()
+
+        # Fall back to checking GEMINI_API_KEY in environment directly
+        import os
+        key = settings.gemini_api_key or os.environ.get("GEMINI_API_KEY", "")
+        if not key:
+            raise ValueError("GEMINI_API_KEY is not configured")
+        self._api_key = key
+
+        self._model = settings.gemini_model or "gemini-1.5-pro"
+        # Ensure model has models/ prefix
+        if not self._model.startswith("models/"):
+            self._model = f"models/{self._model}"
+
+        self._max_tokens = settings.openai_max_tokens  # Re-use max tokens limit
+        self._temperature = settings.openai_temperature  # Re-use temperature
+        self._client = httpx.AsyncClient(timeout=settings.openai_request_timeout)
+
+        logger.info("Gemini LLM client initialised with model '%s'", self._model)
 
     @property
     def model_name(self) -> str:
-        return "gemini-1.5-pro"
+        return self._model
 
     async def complete(self, prompt: BuiltPrompt) -> LLMResponse:
-        raise NotImplementedError
+        """
+        Send prompt to Gemini API and return a structured LLMResponse.
+        """
+        import httpx
+        url = f"https://generativelanguage.googleapis.com/v1beta/{self._model}:generateContent?key={self._api_key}"
+
+        payload = {
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": prompt.user_message}]
+                }
+            ],
+            "systemInstruction": {
+                "parts": [{"text": prompt.system_message}]
+            },
+            "generationConfig": {
+                "temperature": self._temperature,
+                "maxOutputTokens": self._max_tokens,
+            }
+        }
+
+        async for attempt in AsyncRetrying(
+            retry=retry_if_exception_type((httpx.HTTPError, httpx.NetworkError)),
+            wait=wait_exponential(multiplier=1, min=2, max=60),
+            stop=stop_after_attempt(5),
+            reraise=True,
+        ):
+            with attempt:
+                response = await self._client.post(url, json=payload)
+                if response.status_code != 200:
+                    logger.error("Gemini API error: %s", response.text)
+                    response.raise_for_status()
+
+                data = response.json()
+                
+                # Extract parts
+                candidates = data.get("candidates", [])
+                if not candidates:
+                    raise RuntimeError("No generation candidates returned from Gemini")
+                
+                candidate = candidates[0]
+                content = ""
+                parts = candidate.get("content", {}).get("parts", [])
+                if parts:
+                    content = parts[0].get("text", "")
+
+                usage = data.get("usageMetadata", {})
+                prompt_tokens = usage.get("promptTokenCount", 0)
+                completion_tokens = usage.get("candidatesTokenCount", 0)
+                total_tokens = usage.get("totalTokenCount", 0)
+                finish_reason = candidate.get("finishReason", "unknown").lower()
+
+                return LLMResponse(
+                    content=content,
+                    model=self._model,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    total_tokens=total_tokens,
+                    finish_reason=finish_reason,
+                )
+
+        raise RuntimeError("Gemini completion request failed after all retries")
 
 
 # ---------------------------------------------------------------------------
