@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green.svg)](https://fastapi.tiangolo.com)
 [![Qdrant](https://img.shields.io/badge/Qdrant-1.12-red.svg)](https://qdrant.tech)
-[![Gemini](https://img.shields.io/badge/Gemini-orange.svg)](https://gemini.google.com)
+[![Gemini](https://img.shields.io/badge/Nvidia-green.svg)](https://nvidia.com)
 
 ---
 
