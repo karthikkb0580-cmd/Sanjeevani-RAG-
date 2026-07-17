@@ -9,8 +9,6 @@ No business logic — pure data access.
 from __future__ import annotations
 
 import logging
-import uuid
-from datetime import datetime, timezone
 from typing import Any
 
 from qdrant_client import AsyncQdrantClient, models as qdrant_models
