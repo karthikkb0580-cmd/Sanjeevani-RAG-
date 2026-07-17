@@ -39,18 +39,29 @@ class QdrantClientManager:
             "host": settings.qdrant_host,
             "port": settings.qdrant_port,
             "https": settings.qdrant_use_https,
-            "timeout": 30,
+            "timeout": 5,
             "prefer_grpc": False,
         }
         if settings.qdrant_api_key:
             kwargs["api_key"] = settings.qdrant_api_key
 
-        self._client = AsyncQdrantClient(**kwargs)
-        logger.info(
-            "Qdrant client connected to %s:%s",
-            settings.qdrant_host,
-            settings.qdrant_port,
-        )
+        try:
+            self._client = AsyncQdrantClient(**kwargs)
+            await self._client.get_collections()  # verify connectivity
+            logger.info(
+                "Qdrant client connected to %s:%s",
+                settings.qdrant_host,
+                settings.qdrant_port,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Cannot reach Qdrant at %s:%s (%s). Using in-memory database.",
+                settings.qdrant_host,
+                settings.qdrant_port,
+                exc,
+            )
+            self._client = AsyncQdrantClient(location=":memory:")
+
         await self._ensure_collection()
 
     async def disconnect(self) -> None:

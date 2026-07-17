@@ -111,15 +111,15 @@ class QdrantRepository:
         score_threshold: float = 0.0,
     ) -> list[RetrievedChunk]:
         """Cosine similarity search without payload filter."""
-        results = await self._client.search(
+        response = await self._client.query_points(
             collection_name=self._collection,
-            query_vector=query_vector,
+            query=query_vector,
             limit=top_k,
             score_threshold=score_threshold,
             with_payload=True,
             with_vectors=False,
         )
-        return [self._point_to_retrieved_chunk(r) for r in results]
+        return [self._point_to_retrieved_chunk(r) for r in response.points]
 
     async def search_with_filter(
         self,
@@ -141,16 +141,16 @@ class QdrantRepository:
                 ]
             )
 
-        results = await self._client.search(
+        response = await self._client.query_points(
             collection_name=self._collection,
-            query_vector=query_vector,
+            query=query_vector,
             query_filter=query_filter,
             limit=top_k,
             score_threshold=score_threshold,
             with_payload=True,
             with_vectors=False,
         )
-        return [self._point_to_retrieved_chunk(r) for r in results]
+        return [self._point_to_retrieved_chunk(r) for r in response.points]
 
     async def search_with_vectors(
         self,
@@ -174,9 +174,9 @@ class QdrantRepository:
                 ]
             )
 
-        results = await self._client.search(
+        response = await self._client.query_points(
             collection_name=self._collection,
-            query_vector=query_vector,
+            query=query_vector,
             query_filter=query_filter,
             limit=top_k,
             score_threshold=score_threshold,
@@ -184,7 +184,7 @@ class QdrantRepository:
             with_vectors=True,
         )
         pairs: list[tuple[RetrievedChunk, list[float]]] = []
-        for r in results:
+        for r in response.points:
             chunk = self._point_to_retrieved_chunk(r)
             vec: list[float] = r.vector if isinstance(r.vector, list) else []
             pairs.append((chunk, vec))
