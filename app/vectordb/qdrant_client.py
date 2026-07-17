@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import logging
 
-from qdrant_client import AsyncQdrantClient, models as qdrant_models
+from qdrant_client import AsyncQdrantClient
+from qdrant_client.http import models as qdrant_models
 from qdrant_client.http.exceptions import UnexpectedResponse
 
 from app.config.settings import get_settings
@@ -139,11 +140,6 @@ class QdrantClientManager:
             }
         except Exception as exc:
             return {"status": "unhealthy", "error": str(exc)}
-
-
-# ---------------------------------------------------------------------------
-# Module-level singleton
-# ---------------------------------------------------------------------------
 
 _qdrant_manager = QdrantClientManager()
 
