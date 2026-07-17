@@ -85,10 +85,10 @@ _MAX_IMAGE_BYTES = 20 * 1024 * 1024
 )
 async def analyze_multipart(
     # ── Image upload (optional) ─────────────────────────────────────────────
-    image: Annotated[
-        UploadFile | None,
-        File(description="Image of a molecule structure, diagram, or handwritten note"),
-    ] = None,
+    image: UploadFile = File(
+        None,
+        description="Image of a molecule structure, diagram, or handwritten note",
+    ),
 
     # ── Text input (optional) ───────────────────────────────────────────────
     text: Annotated[

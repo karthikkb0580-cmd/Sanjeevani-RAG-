@@ -239,6 +239,15 @@ class QdrantRepository:
         )
         return result.count
 
+    async def is_empty(self) -> bool:
+        """Check if the collection contains zero points."""
+        try:
+            info = await self._client.get_collection(self._collection)
+            return info.points_count == 0
+        except Exception as exc:
+            logger.warning("Failed to check if collection is empty: %s", exc)
+            return True
+
     async def get_chunk_by_id(self, chunk_id: str) -> RetrievedChunk | None:
         """Retrieve a single chunk by its UUID point ID."""
         results = await self._client.retrieve(

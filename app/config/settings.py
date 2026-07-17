@@ -70,7 +70,7 @@ class Settings(BaseSettings):
 
     # ── Gemini (Embeddings only) ───────────────────────────────────────────────
     gemini_api_key: str = Field(default="")
-    gemini_model: str = Field(default="gemini-1.5-pro")
+    gemini_model: str = Field(default="gemini-3.5-flash")
     gemini_embedding_model: str = Field(default="models/text-embedding-004")
     gemini_embedding_dimensions: int = Field(default=768)
 

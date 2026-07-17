@@ -49,6 +49,12 @@ async def health_check(settings: Settings = Depends(get_settings)) -> dict:
 
     overall_status = "healthy" if qdrant_health["status"] == "healthy" else "degraded"
 
+    from app.embeddings.embedding_service import get_embedding_provider
+    from app.llm.openai_client import get_llm_client
+
+    active_embedder = get_embedding_provider()
+    active_llm = get_llm_client()
+
     return {
         "status": overall_status,
         "service": settings.app_name,
@@ -63,8 +69,8 @@ async def health_check(settings: Settings = Depends(get_settings)) -> dict:
             "platform": platform.system(),
         },
         "config": {
-            "embedding_model": settings.openai_embedding_model,
-            "chat_model": settings.openai_chat_model,
+            "embedding_model": active_embedder.model_name,
+            "chat_model": active_llm.model_name,
             "collection": settings.qdrant_collection_name,
             "chunk_size": settings.chunk_size,
             "chunk_overlap": settings.chunk_overlap,

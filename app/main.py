@@ -48,22 +48,22 @@ async def lifespan(app: FastAPI):
     - Startup: connect to Qdrant, ensure collection exists
     - Shutdown: close Qdrant connection
     """
-    logger.info("═══════════════════════════════════════════")
-    logger.info(" Sanjeevani RAG Service v%s starting …", settings.app_version)
-    logger.info("═══════════════════════════════════════════")
+    logger.info("===========================================")
+    logger.info(" Sanjeevani RAG Service v%s starting ...", settings.app_version)
+    logger.info("===========================================")
 
     # Connect to Qdrant
     manager = get_qdrant_manager()
     await manager.connect()
     logger.info("Qdrant connection established")
 
-    logger.info("Service ready – listening on %s:%s", settings.host, settings.port)
-    logger.info("───────────────────────────────────────────")
+    logger.info("Service ready - listening on %s:%s", settings.host, settings.port)
+    logger.info("-------------------------------------------")
 
     yield  # ← Application runs here
 
     # Shutdown
-    logger.info("Shutting down Sanjeevani RAG Service …")
+    logger.info("Shutting down Sanjeevani RAG Service ...")
     await manager.disconnect()
     logger.info("Shutdown complete")
 
